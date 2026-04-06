@@ -32,6 +32,19 @@ describe('parseHarnessFromMap', () => {
     expect(result.settings).not.toBeNull()
   })
 
+  it('.claude/skills/ 경로의 파일을 파싱한다', () => {
+    const files = new Map([['.claude/skills/coding.md', '# Coding skill']])
+    const result = parseHarnessFromMap(files)
+    expect(result.skills).toHaveLength(1)
+    expect(result.skills[0].path).toBe('.claude/skills/coding.md')
+  })
+
+  it('.claude/hooks/ 경로의 파일을 파싱한다', () => {
+    const files = new Map([['.claude/hooks/pre-commit.sh', '#!/bin/bash']])
+    const result = parseHarnessFromMap(files)
+    expect(result.hooks).toHaveLength(1)
+  })
+
   it('아무 파일도 없으면 빈 결과를 반환한다', () => {
     const result = parseHarnessFromMap(new Map())
     expect(result.claudeMd).toBeNull()
@@ -69,6 +82,10 @@ describe('hashFiles', () => {
     const b = { path: 'b.md', content: 'b', hash: hashContent('b') }
     expect(hashFiles([a, b])).toBe(hashFiles([b, a]))
   })
+
+  it('빈 배열에 대해 hex 문자열을 반환한다', () => {
+    expect(hashFiles([])).toMatch(/^[a-f0-9]{16}$/)
+  })
 })
 
 describe('getAllFiles', () => {
@@ -78,6 +95,8 @@ describe('getAllFiles', () => {
       ['skills/coding.md', 'code'],
     ])
     const harness = parseHarnessFromMap(files)
-    expect(getAllFiles(harness)).toHaveLength(2)
+    const allFiles = getAllFiles(harness)
+    expect(allFiles).toHaveLength(2)
+    expect(allFiles.every(f => f !== null)).toBe(true)
   })
 })

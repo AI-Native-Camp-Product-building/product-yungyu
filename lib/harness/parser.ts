@@ -31,9 +31,9 @@ export function parseHarnessFromMap(files: Map<string, string>): ParsedHarness {
 
     if (path === 'CLAUDE.md' || path.endsWith('/CLAUDE.md')) {
       result.claudeMd = file
-    } else if (path.startsWith('skills/') || path.includes('/.claude/skills/')) {
+    } else if (path.startsWith('skills/') || path.startsWith('.claude/skills/') || path.includes('/.claude/skills/')) {
       result.skills.push(file)
-    } else if (path.startsWith('hooks/') || path.includes('/.claude/hooks/')) {
+    } else if (path.startsWith('hooks/') || path.startsWith('.claude/hooks/') || path.includes('/.claude/hooks/')) {
       result.hooks.push(file)
     } else if (path === '.claude/settings.json' || path === 'settings.json') {
       result.settings = file
@@ -45,6 +45,6 @@ export function parseHarnessFromMap(files: Map<string, string>): ParsedHarness {
 
 export function getAllFiles(harness: ParsedHarness): HarnessFile[] {
   return [harness.claudeMd, ...harness.skills, ...harness.hooks, harness.settings].filter(
-    Boolean
-  ) as HarnessFile[]
+    (f): f is HarnessFile => f !== null
+  )
 }
