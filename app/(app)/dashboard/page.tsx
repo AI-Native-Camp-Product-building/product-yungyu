@@ -10,9 +10,8 @@ import { Button } from '@/components/ui/button'
 
 export default async function DashboardPage() {
   const { userId: clerkId } = await auth()
-  if (!clerkId) redirect('/sign-in')
 
-  const user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) })
+  const user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId!) })
   const userProjects = user
     ? await db.select().from(projects).where(eq(projects.userId, user.id))
     : []
@@ -31,7 +30,7 @@ export default async function DashboardPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {userProjects.map((p) => (
             <Link key={p.id} href={`/projects/${p.id}`} className="block border border-border rounded-lg p-4 hover:border-primary transition-colors">
               <h3 className="font-medium">{p.name}</h3>
