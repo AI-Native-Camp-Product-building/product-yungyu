@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { UserButton, SignOutButton } from '@clerk/nextjs'
 import { cn } from '@/lib/utils'
 import { SyncButton } from '@/components/sync-button'
+import { FeedbackButton } from '@/components/feedback-button'
 
 interface Project {
   id: string
@@ -52,6 +53,9 @@ export function AppSidebar({ projects }: { projects: Project[] }) {
       </nav>
       <div className="px-2 pb-2 border-t border-border pt-2">
         <SyncButton />
+      </div>
+      <div className="border-t border-border pt-2 pb-1">
+        <FeedbackButton />
       </div>
       <div className="px-4 pb-4 flex items-center gap-2">
         <UserButton />
