@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/db'
 import { harnessFiles, projects } from '@/lib/db/schema'
-import { parseHarnessFromMap, getAllFiles } from '@/lib/harness/parser'
+
 import { auth, clerkClient } from '@clerk/nextjs/server'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
@@ -142,25 +142,21 @@ export async function saveHarnessFiles(
   projectId: string,
   fileMap: Record<string, string>
 ) {
-  const harness = parseHarnessFromMap(new Map(Object.entries(fileMap)))
-  const files = getAllFiles(harness)
+  const { hashContent } = await import('@/lib/harness/parser')
+  const entries = Object.entries(fileMap)
 
-  for (const file of files) {
+  for (const [filePath, content] of entries) {
+    const fileHash = hashContent(content)
     await db
       .insert(harnessFiles)
-      .values({
-        projectId,
-        filePath: file.path,
-        content: file.content,
-        fileHash: file.hash,
-      })
+      .values({ projectId, filePath, content, fileHash })
       .onConflictDoUpdate({
         target: [harnessFiles.projectId, harnessFiles.filePath],
-        set: { content: file.content, fileHash: file.hash, lastSyncedAt: new Date() },
+        set: { content, fileHash, lastSyncedAt: new Date() },
       })
   }
 
-  return files.length
+  return entries.length
 }
 
 export async function syncFromGitHub(projectId: string) {
