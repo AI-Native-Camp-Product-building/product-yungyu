@@ -97,6 +97,55 @@ harness-manager/
 - Hooks / MCP 편집기
 - 가비지컬렉션 에이전트
 
+## 테스트 규칙
+
+- **커버리지 80% 이상 필수** — `lib/harness/parser.ts`, `lib/ai/analyzer.ts` 는 순수 함수이므로 반드시 테스트
+- `npm run test:coverage` 로 확인, 미달 시 CI 실패
+- 새 순수 함수 추가 시 동일 파일에 `.test.ts` 작성 필수
+
+## 핵심 함수 스펙
+
+### `lib/harness/parser.ts`
+
+```typescript
+// 파일 맵에서 하네스 구조 파싱
+parseHarnessFromMap(files: Map<string, string>): HarnessData
+
+// 하네스 구조를 평탄한 파일 배열로 변환
+getAllFiles(harness: HarnessData): Array<{ path: string; content: string; hash: string }>
+
+// 단일 파일 내용 해시 (SHA-256, hex)
+hashContent(content: string): string
+
+// 여러 파일의 해시를 합산한 캐시 키 생성
+hashFiles(files: Array<{ hash: string }>): string
+// → 실패 없음. 빈 배열이면 빈 문자열 반환
+```
+
+### `lib/ai/analyzer.ts`
+
+```typescript
+// AI 분석용 프롬프트 생성 (순수 함수, 부작용 없음)
+buildAnalysisPrompt(fileContents: string): string
+
+// AI 응답 JSON 파싱. 마크다운 코드블록 자동 제거
+// → JSON 파싱 실패 시 SyntaxError throw
+parseAnalysisResponse(raw: string): AnalysisResult
+
+// AI Gateway 호출 → 분석 실행
+// → Gateway 오류 시 GatewayInternalServerError throw
+analyzeHarness(fileContents: string): Promise<AnalysisResult>
+```
+
+### `actions/analysis.ts` — 캐시 키 전략
+
+```typescript
+// filesHash = SHA-256(각 파일 hash를 정렬 후 연결)
+// 동일 hash 존재 시 → DB 캐시 반환 (AI 미호출)
+// 새 hash → AI 분석 → DB 저장
+getOrRunAnalysis(projectId: string): Promise<HarnessAnalysis | null>
+```
+
 ## 로컬 개발 시작
 
 ```bash

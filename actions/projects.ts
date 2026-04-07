@@ -12,7 +12,7 @@ async function getOrCreateUser() {
   const clerkUser = await currentUser()
   const email = clerkUser?.emailAddresses[0]?.emailAddress ?? ''
 
-  const existing = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) })
+  const [existing] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1)
   if (existing) return existing
 
   const [created] = await db.insert(users).values({ clerkId, email }).returning()

@@ -39,7 +39,8 @@ ${fileContents}`
 }
 
 export function parseAnalysisResponse(raw: string): AnalysisResult {
-  const parsed = JSON.parse(raw)
+  const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
+  const parsed = JSON.parse(cleaned)
   const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)))
   return {
     scores: {
@@ -60,7 +61,7 @@ export function parseAnalysisResponse(raw: string): AnalysisResult {
 export async function analyzeHarness(fileContents: string): Promise<AnalysisResult> {
   const { text } = await generateText({
     // Routed via Vercel AI Gateway (OIDC). vercel env pull provisions the token.
-    model: 'anthropic/claude-haiku-4.5' as any,
+    model: 'anthropic/claude-haiku-4.5' as Parameters<typeof generateText>[0]['model'],
     prompt: buildAnalysisPrompt(fileContents),
   })
   return parseAnalysisResponse(text)

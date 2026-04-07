@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider appearance={{ baseTheme: dark }}>
+    <ClerkProvider appearance={{ baseTheme: dark }} afterSignOutUrl="/sign-in">
       <html lang="ko" className="dark">
         <body className={`${GeistSans.variable} ${GeistMono.variable} antialiased bg-background text-foreground`}>
           {children}

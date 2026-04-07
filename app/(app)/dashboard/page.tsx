@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 export default async function DashboardPage() {
   const { userId: clerkId } = await auth()
 
-  const user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId!) })
+  const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId!)).limit(1)
   const userProjects = user
     ? await db.select().from(projects).where(eq(projects.userId, user.id))
     : []
