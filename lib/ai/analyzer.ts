@@ -1,9 +1,16 @@
 import { generateText } from 'ai'
 import type { Recommendation } from '@/lib/db/schema'
 
+export interface TokenUsage {
+  promptTokens: number
+  completionTokens: number
+  totalTokens: number
+}
+
 export interface AnalysisResult {
   scores: { context: number; enforcement: number; gc: number }
   recommendations: Recommendation[]
+  tokenUsage: TokenUsage | null
 }
 
 export function buildAnalysisPrompt(fileContents: string): string {
@@ -65,7 +72,7 @@ HARNESS FILES:
 ${fileContents}`
 }
 
-export function parseAnalysisResponse(raw: string): AnalysisResult {
+export function parseAnalysisResponse(raw: string, tokenUsage: TokenUsage | null = null): AnalysisResult {
   const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
   const parsed = JSON.parse(cleaned)
   const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)))
@@ -82,14 +89,30 @@ export function parseAnalysisResponse(raw: string): AnalysisResult {
       description: r.description,
       action: r.action,
     })),
+    tokenUsage,
   }
 }
 
 export async function analyzeHarness(fileContents: string): Promise<AnalysisResult> {
-  const { text } = await generateText({
+  const { text, usage } = await generateText({
     // Routed via Vercel AI Gateway (OIDC). vercel env pull provisions the token.
     model: 'anthropic/claude-haiku-4.5' as Parameters<typeof generateText>[0]['model'],
     prompt: buildAnalysisPrompt(fileContents),
   })
-  return parseAnalysisResponse(text)
+
+  const inputTokens = usage.inputTokens ?? 0
+  const outputTokens = usage.outputTokens ?? 0
+  const tokenUsage: TokenUsage = {
+    promptTokens: inputTokens,
+    completionTokens: outputTokens,
+    totalTokens: inputTokens + outputTokens,
+  }
+
+  // 비용 추정 로깅 (claude-haiku-4.5: input $0.80/1M, output $4.00/1M)
+  const estimatedCostUsd =
+    (inputTokens / 1_000_000) * 0.8 +
+    (outputTokens / 1_000_000) * 4.0
+  console.log(`[AI] tokens=${tokenUsage.totalTokens}, est_cost=$${estimatedCostUsd.toFixed(5)}`)
+
+  return parseAnalysisResponse(text, tokenUsage)
 }

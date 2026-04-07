@@ -43,6 +43,7 @@ export async function getOrRunAnalysis(projectId: string) {
       filesHash,
       scores: result.scores,
       recommendations: result.recommendations,
+      tokenUsage: result.tokenUsage,
     })
     .returning()
 

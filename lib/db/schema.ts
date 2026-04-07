@@ -33,6 +33,7 @@ export const harnessAnalyses = pgTable('harness_analyses', {
   filesHash: text('files_hash').notNull(),
   scores: jsonb('scores').$type<{ context: number; enforcement: number; gc: number }>().notNull(),
   recommendations: jsonb('recommendations').$type<Recommendation[]>().notNull(),
+  tokenUsage: jsonb('token_usage').$type<{ promptTokens: number; completionTokens: number; totalTokens: number } | null>().default(null),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
