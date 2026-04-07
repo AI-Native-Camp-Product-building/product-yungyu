@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Harness Coach
 
-## Getting Started
+> AI가 당신의 Claude Code 하네스를 진단하고, 점수로 보여주고, 개선까지 도와주는 도구
 
-First, run the development server:
+🔗 **[harness-manager.vercel.app](https://harness-manager.vercel.app)**
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## 누구의 어떤 문제를 푸는가
+
+**Claude Code를 쓰는 개발자**는 CLAUDE.md, Skills, Hooks, settings.json 같은 하네스 파일을 만들어 AI에게 맥락을 제공합니다.
+
+그런데 대부분은 이런 상태입니다:
+
+- CLAUDE.md가 있긴 한데, AI가 실제로 잘 읽고 있는지 모른다
+- Skills는 몇 개 만들었지만 체계가 없다
+- Hooks 설정은 엄두도 못 냈다
+- "하네스가 충분한지"를 판단하는 기준 자체가 없다
+
+**하네스가 약하면 Claude가 매번 같은 실수를 반복하고, 프로젝트마다 맥락을 다시 설명해야 합니다.**
+
+Harness Coach는 이 문제를 풉니다. GitHub 레포를 연결하면 AI가 하네스 파일 전체를 분석해 **무엇이 약한지, 무엇부터 고쳐야 하는지**를 점수와 추천으로 보여줍니다.
+
+---
+
+## 핵심 동작
+
+```
+Connect → Diagnose → Recommend → Edit
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**1. GitHub 레포 연결**
+GitHub으로 로그인하고 분석할 레포를 선택합니다. 모든 브랜치를 자동으로 스캔해 하네스 파일을 수집합니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**2. AI 3축 진단**
+Claude Haiku가 하네스 파일 전체를 읽고 3가지 축으로 점수를 매깁니다.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| 축 | 의미 |
+|----|------|
+| 컨텍스트 | CLAUDE.md와 Skills가 프로젝트를 얼마나 잘 설명하는가 |
+| 자동강제 | Hooks, CI, pre-commit으로 규칙이 자동 강제되는가 |
+| 가비지컬렉션 | 오래된 데이터와 임시 파일이 자동으로 정리되는가 |
 
-## Learn More
+**3. 우선순위 추천**
+긴급 / 높음 / 보통으로 분류된 개선 추천과 함께 **Claude Code에 바로 붙여넣을 수 있는 명령 스크립트**를 생성합니다.
 
-To learn more about Next.js, take a look at the following resources:
+**4. 편집기**
+CLAUDE.md와 Skills를 웹에서 직접 편집하고 저장할 수 있습니다.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 완성되면 누구에게 보여줄 것인가
 
-## Deploy on Vercel
+**1차 타겟: Claude Code를 이미 쓰는 개발자**
+하네스를 만들어봤지만 "잘 되고 있는지" 확신이 없는 사람들. 점수를 보는 순간 자신의 하네스가 얼마나 허술한지 알게 됩니다.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**2차 타겟: AI Native Camp 참여자**
+캠프에서 Claude Code를 배우고 하네스를 처음 만드는 사람들. 무엇을 만들어야 하는지 모를 때 진단 결과가 학습 가이드가 됩니다.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**3차 타겟: 개발팀 리드**
+팀원들의 하네스 품질을 표준화하고 싶은 리더. 팀 전체 하네스를 같은 기준으로 진단하고 관리할 수 있습니다.
