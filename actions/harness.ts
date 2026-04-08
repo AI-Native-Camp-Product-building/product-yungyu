@@ -31,9 +31,13 @@ const HARNESS_FILE_MATCHERS = [
 async function getGitHubToken(): Promise<string | null> {
   const { userId } = await auth()
   if (!userId) return null
-  const client = await clerkClient()
-  const { data } = await client.users.getUserOauthAccessToken(userId, 'oauth_github')
-  return data[0]?.token ?? null
+  try {
+    const client = await clerkClient()
+    const { data } = await client.users.getUserOauthAccessToken(userId, 'oauth_github')
+    return data[0]?.token ?? null
+  } catch {
+    return null
+  }
 }
 
 function githubHeaders(token: string | null): HeadersInit {
