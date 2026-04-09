@@ -4,7 +4,6 @@ import { createHash, randomBytes } from 'crypto'
 import { db } from '@/lib/db'
 import { apiKeys, users } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
-import { neon } from '@neondatabase/serverless'
 
 async function getUserId(): Promise<string | null> {
   const { userId: clerkId } = await auth()
@@ -21,23 +20,27 @@ async function getUserId(): Promise<string | null> {
   return row?.id ?? null
 }
 
-// TEMP DIAGNOSTIC: call GET /api/api-keys to see what DB the app is connected to
 export async function GET() {
   try {
-    const sql = neon(process.env.DATABASE_URL ?? '')
-    const rows = await sql`
-      SELECT current_database() as db,
-             string_agg(table_name, ', ' ORDER BY table_name) as tables
-      FROM information_schema.tables
-      WHERE table_schema = 'public'
-    `
-    return NextResponse.json({
-      url_prefix: (process.env.DATABASE_URL ?? 'NOT SET').slice(0, 70),
-      db: rows[0]?.db,
-      tables: rows[0]?.tables,
-    })
+    const userId = await getUserId()
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const rows = await db
+      .select({ id: apiKeys.id, name: apiKeys.name, keyPrefix: apiKeys.keyPrefix, lastUsedAt: apiKeys.lastUsedAt, createdAt: apiKeys.createdAt })
+      .from(apiKeys)
+      .where(eq(apiKeys.userId, userId))
+      .orderBy(apiKeys.createdAt)
+
+    return NextResponse.json(rows.map(r => ({
+      id: r.id,
+      name: r.name,
+      keyPrefix: r.keyPrefix,
+      lastUsedAt: r.lastUsedAt ? new Date(r.lastUsedAt).toISOString() : null,
+      createdAt: new Date(r.createdAt).toISOString(),
+    })))
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    console.error('[api-keys GET]', err)
+    return NextResponse.json({ error: '키 목록을 불러오지 못했습니다.' }, { status: 500 })
   }
 }
 
@@ -71,8 +74,7 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     console.error('[api-keys POST]', err)
-    const detail = JSON.stringify(err, Object.getOwnPropertyNames(err as object))
-    return NextResponse.json({ error: `[DEBUG] ${detail}` }, { status: 500 })
+    return NextResponse.json({ error: 'API Key 생성에 실패했습니다.' }, { status: 500 })
   }
 }
 
