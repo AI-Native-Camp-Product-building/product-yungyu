@@ -103,13 +103,27 @@ const TOOLS = [
     name: 'diagnose_harness',
     description: `현재 하네스를 진단하고 context / enforcement / gc 3축 점수를 반환합니다.
 githubRepoUrl이 제공되지 않으면 현재 디렉토리에서 \`git remote get-url origin\`을 실행해 자동으로 URL을 찾으세요.
-GitHub URL 형식: https://github.com/org/repo (trailing slash나 .git 제거)`,
+files를 직접 전달하면 GitHub fetch 없이 즉시 분석합니다 (루프 모드).`,
     inputSchema: {
       type: 'object',
       properties: {
-        githubRepoUrl: { type: 'string', description: 'GitHub 레포지토리 URL. 생략 시 현재 디렉토리의 git remote origin에서 자동 감지.' },
+        githubRepoUrl: {
+          type: 'string',
+          description: 'GitHub 레포지토리 URL. files 미제공 시 필수.',
+        },
+        files: {
+          type: 'array',
+          description: '직접 분석할 파일 목록. 제공 시 GitHub fetch 스킵.',
+          items: {
+            type: 'object',
+            properties: {
+              path: { type: 'string' },
+              content: { type: 'string' },
+            },
+            required: ['path', 'content'],
+          },
+        },
       },
-      required: ['githubRepoUrl'],
     },
   },
   {
@@ -131,14 +145,46 @@ githubRepoUrl이 제공되지 않으면 현재 디렉토리에서 \`git remote g
 
 async function callTool(name: string, args: unknown, userId: string): Promise<unknown> {
   if (name === 'diagnose_harness') {
-    const { githubRepoUrl } = z.object({ githubRepoUrl: z.string().url() }).parse(args)
-    const { analysis, fileCount, fromCache } = await syncAndAnalyze(userId, githubRepoUrl)
-    const { context, enforcement, gc } = analysis.scores
+    const FileSchema = z.object({ path: z.string(), content: z.string() })
+    const parsed = z
+      .object({
+        githubRepoUrl: z.string().url().optional(),
+        files: z.array(FileSchema).optional(),
+      })
+      .refine((d) => d.githubRepoUrl || (d.files && d.files.length > 0), {
+        message: 'githubRepoUrl 또는 files 중 하나는 필요합니다.',
+      })
+      .parse(args)
+
+    let scores: { context: number; enforcement: number; gc: number }
+    let recommendations: { priority: string; category: string; title: string; description: string; action: string }[]
+    let fileCount: number
+    let fromCache = false
+    let repoLabel: string
+
+    if (parsed.files) {
+      // 루프 모드: 파일 직접 분석 (GitHub fetch / DB 스킵)
+      const fileContents = parsed.files.map((f) => `### ${f.path}\n${f.content}`).join('\n\n---\n\n')
+      const result = await analyzeHarness(fileContents)
+      scores = result.scores
+      recommendations = result.recommendations
+      fileCount = parsed.files.length
+      repoLabel = 'local'
+    } else {
+      const { analysis, fileCount: fc, fromCache: cached } = await syncAndAnalyze(userId, parsed.githubRepoUrl!)
+      scores = analysis.scores as { context: number; enforcement: number; gc: number }
+      recommendations = analysis.recommendations as { priority: string; category: string; title: string; description: string; action: string }[]
+      fileCount = fc
+      fromCache = cached
+      repoLabel = parsed.githubRepoUrl!
+    }
+
+    const { context, enforcement, gc } = scores
     const avg = Math.round((context + enforcement + gc) / 3)
     const grade = avg >= 80 ? 'A' : avg >= 60 ? 'B' : avg >= 40 ? 'C' : 'D'
 
     const text = [
-      `## 하네스 진단 결과 — ${githubRepoUrl}`,
+      `## 하네스 진단 결과 — ${repoLabel}`,
       '',
       `| 축 | 점수 | 의미 |`,
       `|---|---|---|`,
@@ -149,7 +195,9 @@ async function callTool(name: string, args: unknown, userId: string): Promise<un
       '',
       `분석된 파일 수: ${fileCount}개${fromCache ? ' (캐시됨)' : ''}`,
       '',
-      `개선 방법을 보려면: "내 하네스 개선해줘"`,
+      '```json',
+      JSON.stringify({ loop_data: { total: avg, scores, recommendations } }),
+      '```',
     ].join('\n')
 
     return { content: [{ type: 'text', text }] }
