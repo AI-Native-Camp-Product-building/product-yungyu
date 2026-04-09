@@ -56,3 +56,39 @@ CLAUDE.md와 Skills를 웹에서 직접 편집하고 저장할 수 있습니다.
 
 **2차 타겟: 개발팀 리드**
 팀원들의 하네스 품질을 표준화하고 싶은 리더. 팀 전체 하네스를 같은 기준으로 진단하고 관리할 수 있습니다.
+
+---
+
+## MCP 서버 연동
+
+Harness Coach는 **MCP(Model Context Protocol) 서버**를 내장하고 있어, Claude Code에서 직접 하네스 진단과 개선 추천을 받을 수 있습니다.
+
+### 제공 도구
+
+| 도구 | 설명 |
+|------|------|
+| `diagnose_harness` | GitHub 레포의 하네스 파일을 3축(컨텍스트 / 자동강제 / 가비지컬렉션)으로 진단하고 점수를 반환 |
+| `improve_harness` | 우선순위별 개선 추천 목록과 항목별 실행 프롬프트를 반환 |
+
+### 연결 방법
+
+1. [harness-manager.vercel.app](https://harness-manager.vercel.app) 대시보드에서 **API Key 발급**
+2. `~/.claude/.mcp.json`에 아래 내용 추가:
+
+```json
+{
+  "mcpServers": {
+    "harness-coach": {
+      "type": "http",
+      "url": "https://harness-manager.vercel.app/api/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+3. Claude Code 재시작 후 `/mcp` 명령으로 연결 확인
+
+> 상세 가이드: [`docs/mcp-guide.md`](docs/mcp-guide.md)
