@@ -101,22 +101,25 @@ async function syncAndAnalyze(userId: string, githubRepoUrl: string) {
 const TOOLS = [
   {
     name: 'diagnose_harness',
-    description: '현재 하네스를 진단하고 context / enforcement / gc 3축 점수를 반환합니다.',
+    description: `현재 하네스를 진단하고 context / enforcement / gc 3축 점수를 반환합니다.
+githubRepoUrl이 제공되지 않으면 현재 디렉토리에서 \`git remote get-url origin\`을 실행해 자동으로 URL을 찾으세요.
+GitHub URL 형식: https://github.com/org/repo (trailing slash나 .git 제거)`,
     inputSchema: {
       type: 'object',
       properties: {
-        githubRepoUrl: { type: 'string', description: '진단할 GitHub 레포지토리 URL (예: https://github.com/org/repo)' },
+        githubRepoUrl: { type: 'string', description: 'GitHub 레포지토리 URL. 생략 시 현재 디렉토리의 git remote origin에서 자동 감지.' },
       },
       required: ['githubRepoUrl'],
     },
   },
   {
     name: 'improve_harness',
-    description: '하네스 개선 방법을 우선순위별로 제안합니다. applyIndex를 지정하면 해당 항목의 실행 프롬프트를 반환합니다.',
+    description: `하네스 개선 방법을 우선순위별로 제안합니다. applyIndex를 지정하면 해당 항목의 실행 프롬프트를 반환합니다.
+githubRepoUrl이 제공되지 않으면 현재 디렉토리에서 \`git remote get-url origin\`을 실행해 자동으로 URL을 찾으세요.`,
     inputSchema: {
       type: 'object',
       properties: {
-        githubRepoUrl: { type: 'string', description: '개선할 GitHub 레포지토리 URL' },
+        githubRepoUrl: { type: 'string', description: 'GitHub 레포지토리 URL. 생략 시 현재 디렉토리의 git remote origin에서 자동 감지.' },
         applyIndex: { type: 'number', description: '적용할 추천 항목 번호 (0부터). 생략 시 목록만 반환합니다.' },
       },
       required: ['githubRepoUrl'],
