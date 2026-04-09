@@ -194,13 +194,36 @@ async function callTool(name: string, args: unknown, userId: string): Promise<un
 
 // ── MCP method router ────────────────────────────────────────────────────────
 
+const SESSION_ID = 'harness-coach-session'
+
 async function handleMethod(req: JsonRpcRequest, userId: string): Promise<Response> {
+  // Notifications have no id — acknowledge with 202, no body
+  if (req.id === undefined || req.id === null && req.method.startsWith('notifications/')) {
+    return new Response(null, { status: 202 })
+  }
+
   if (req.method === 'initialize') {
-    return ok(req.id, {
-      protocolVersion: '2024-11-05',
-      capabilities: { tools: {} },
-      serverInfo: { name: 'harness-coach', version: '1.0.0' },
-    })
+    return new Response(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        id: req.id,
+        result: {
+          protocolVersion: '2024-11-05',
+          capabilities: { tools: {} },
+          serverInfo: { name: 'harness-coach', version: '1.0.0' },
+        },
+      }),
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'mcp-session-id': SESSION_ID,
+        },
+      }
+    )
+  }
+
+  if (req.method === 'ping') {
+    return ok(req.id, {})
   }
 
   if (req.method === 'tools/list') {
@@ -218,7 +241,11 @@ async function handleMethod(req: JsonRpcRequest, userId: string): Promise<Respon
     }
   }
 
-  return rpcError(req.id, -32601, `Method not found: ${req.method}`)
+  // Unknown method — return error only if it has an id (not a notification)
+  if (req.id !== undefined) {
+    return rpcError(req.id, -32601, `Method not found: ${req.method}`)
+  }
+  return new Response(null, { status: 202 })
 }
 
 // ── Route handlers ───────────────────────────────────────────────────────────
