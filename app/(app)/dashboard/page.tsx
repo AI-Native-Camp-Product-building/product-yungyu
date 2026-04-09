@@ -29,8 +29,8 @@ export default async function DashboardPage() {
         .orderBy(apiKeys.createdAt)
       userApiKeys = rows.map((r) => ({
         ...r,
-        lastUsedAt: r.lastUsedAt?.toISOString() ?? null,
-        createdAt: r.createdAt.toISOString(),
+        lastUsedAt: r.lastUsedAt ? new Date(r.lastUsedAt).toISOString() : null,
+        createdAt: new Date(r.createdAt).toISOString(),
       }))
     } catch {
       // api_keys 테이블이 마이그레이션되지 않은 경우 무시
