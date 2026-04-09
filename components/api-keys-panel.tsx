@@ -30,7 +30,7 @@ export function ApiKeysPanel({ initialKeys }: { initialKeys: ApiKey[] }) {
           body: JSON.stringify({ name: name.trim() }),
         })
         if (!res.ok) {
-          const data = await res.json() as { error?: string }
+          const data = await res.json().catch(() => ({})) as { error?: string }
           throw new Error(data.error ?? 'API Key 생성에 실패했습니다.')
         }
         const data = await res.json() as { key: string; record: ApiKey }
@@ -53,7 +53,7 @@ export function ApiKeysPanel({ initialKeys }: { initialKeys: ApiKey[] }) {
           body: JSON.stringify({ id: keyId }),
         })
         if (!res.ok) {
-          const data = await res.json() as { error?: string }
+          const data = await res.json().catch(() => ({})) as { error?: string }
           throw new Error(data.error ?? '삭제에 실패했습니다.')
         }
         setKeys((prev) => prev.filter((k) => k.id !== keyId))

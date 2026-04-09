@@ -21,59 +21,75 @@ async function getUserId(): Promise<string | null> {
 }
 
 export async function GET() {
-  const userId = await getUserId()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  try {
+    const userId = await getUserId()
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const rows = await db
-    .select({ id: apiKeys.id, name: apiKeys.name, keyPrefix: apiKeys.keyPrefix, lastUsedAt: apiKeys.lastUsedAt, createdAt: apiKeys.createdAt })
-    .from(apiKeys)
-    .where(eq(apiKeys.userId, userId))
-    .orderBy(apiKeys.createdAt)
+    const rows = await db
+      .select({ id: apiKeys.id, name: apiKeys.name, keyPrefix: apiKeys.keyPrefix, lastUsedAt: apiKeys.lastUsedAt, createdAt: apiKeys.createdAt })
+      .from(apiKeys)
+      .where(eq(apiKeys.userId, userId))
+      .orderBy(apiKeys.createdAt)
 
-  return NextResponse.json(rows.map(r => ({
-    id: r.id,
-    name: r.name,
-    keyPrefix: r.keyPrefix,
-    lastUsedAt: r.lastUsedAt ? new Date(r.lastUsedAt).toISOString() : null,
-    createdAt: new Date(r.createdAt).toISOString(),
-  })))
+    return NextResponse.json(rows.map(r => ({
+      id: r.id,
+      name: r.name,
+      keyPrefix: r.keyPrefix,
+      lastUsedAt: r.lastUsedAt ? new Date(r.lastUsedAt).toISOString() : null,
+      createdAt: new Date(r.createdAt).toISOString(),
+    })))
+  } catch (err) {
+    console.error('[api-keys GET]', err)
+    return NextResponse.json({ error: '키 목록을 불러오지 못했습니다.' }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {
-  const userId = await getUserId()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  try {
+    const userId = await getUserId()
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { name } = await req.json() as { name?: string }
-  if (!name?.trim()) return NextResponse.json({ error: '키 이름을 입력하세요.' }, { status: 400 })
+    const body = await req.json() as { name?: string }
+    const name = body.name?.trim()
+    if (!name) return NextResponse.json({ error: '키 이름을 입력하세요.' }, { status: 400 })
 
-  const raw = `hc_live_${randomBytes(24).toString('hex')}`
-  const keyHash = createHash('sha256').update(raw).digest('hex')
-  const keyPrefix = raw.slice(0, 16) + '...'
+    const raw = `hc_live_${randomBytes(24).toString('hex')}`
+    const keyHash = createHash('sha256').update(raw).digest('hex')
+    const keyPrefix = raw.slice(0, 16) + '...'
 
-  const [created] = await db
-    .insert(apiKeys)
-    .values({ userId, name: name.trim(), keyHash, keyPrefix })
-    .returning({ id: apiKeys.id, name: apiKeys.name, keyPrefix: apiKeys.keyPrefix, createdAt: apiKeys.createdAt })
+    const [created] = await db
+      .insert(apiKeys)
+      .values({ userId, name, keyHash, keyPrefix })
+      .returning({ id: apiKeys.id, name: apiKeys.name, keyPrefix: apiKeys.keyPrefix, createdAt: apiKeys.createdAt })
 
-  return NextResponse.json({
-    key: raw,
-    record: {
-      id: created.id,
-      name: created.name,
-      keyPrefix: created.keyPrefix,
-      lastUsedAt: null,
-      createdAt: new Date(created.createdAt).toISOString(),
-    },
-  })
+    return NextResponse.json({
+      key: raw,
+      record: {
+        id: created.id,
+        name: created.name,
+        keyPrefix: created.keyPrefix,
+        lastUsedAt: null,
+        createdAt: new Date(created.createdAt).toISOString(),
+      },
+    })
+  } catch (err) {
+    console.error('[api-keys POST]', err)
+    return NextResponse.json({ error: 'API Key 생성에 실패했습니다.' }, { status: 500 })
+  }
 }
 
 export async function DELETE(req: NextRequest) {
-  const userId = await getUserId()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  try {
+    const userId = await getUserId()
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { id } = await req.json() as { id?: string }
-  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+    const body = await req.json() as { id?: string }
+    if (!body.id) return NextResponse.json({ error: 'id required' }, { status: 400 })
 
-  await db.delete(apiKeys).where(and(eq(apiKeys.id, id), eq(apiKeys.userId, userId)))
-  return NextResponse.json({ ok: true })
+    await db.delete(apiKeys).where(and(eq(apiKeys.id, body.id), eq(apiKeys.userId, userId)))
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    console.error('[api-keys DELETE]', err)
+    return NextResponse.json({ error: '삭제에 실패했습니다.' }, { status: 500 })
+  }
 }
