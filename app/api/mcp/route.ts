@@ -240,7 +240,7 @@ async function callTool(name: string, args: unknown, userId: string): Promise<un
     const FileSchema = z.object({ path: z.string(), content: z.string() })
     const RecSchema = z.object({
       priority: z.string(),
-      category: z.string().optional(),
+      category: z.string().optional().default('context'),
       title: z.string(),
       description: z.string(),
       action: z.string().optional().default(''),
