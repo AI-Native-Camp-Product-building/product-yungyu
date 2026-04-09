@@ -10,7 +10,7 @@ import { z } from 'zod'
 import { validateApiKey } from '@/lib/api/auth'
 import { fetchGitHubHarnessFiles } from '@/lib/github/fetch'
 import { hashFiles, hashContent } from '@/lib/harness/parser'
-import { analyzeHarness } from '@/lib/ai/analyzer'
+import { analyzeHarness, generateImprovedFiles } from '@/lib/ai/analyzer'
 import { db } from '@/lib/db'
 import { harnessAnalyses, harnessFiles, projects } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
@@ -128,15 +128,48 @@ files를 직접 전달하면 GitHub fetch 없이 즉시 분석합니다 (루프 
   },
   {
     name: 'improve_harness',
-    description: `하네스 개선 방법을 우선순위별로 제안합니다. applyIndex를 지정하면 해당 항목의 실행 프롬프트를 반환합니다.
+    description: `하네스 개선 방법을 우선순위별로 제안하거나 개선된 파일 내용을 반환합니다.
+files + recommendations를 전달하면 개선된 파일 내용을 즉시 반환합니다 (루프 모드).
 githubRepoUrl이 제공되지 않으면 현재 디렉토리에서 \`git remote get-url origin\`을 실행해 자동으로 URL을 찾으세요.`,
     inputSchema: {
       type: 'object',
       properties: {
-        githubRepoUrl: { type: 'string', description: 'GitHub 레포지토리 URL. 생략 시 현재 디렉토리의 git remote origin에서 자동 감지.' },
-        applyIndex: { type: 'number', description: '적용할 추천 항목 번호 (0부터). 생략 시 목록만 반환합니다.' },
+        githubRepoUrl: {
+          type: 'string',
+          description: 'GitHub 레포지토리 URL. files 미제공 시 필수.',
+        },
+        applyIndex: {
+          type: 'number',
+          description: '적용할 추천 항목 번호 (0부터). 생략 시 목록만 반환합니다.',
+        },
+        files: {
+          type: 'array',
+          description: '직접 개선할 파일 목록 (루프 모드).',
+          items: {
+            type: 'object',
+            properties: {
+              path: { type: 'string' },
+              content: { type: 'string' },
+            },
+            required: ['path', 'content'],
+          },
+        },
+        recommendations: {
+          type: 'array',
+          description: 'diagnose_harness의 loop_data.recommendations. 제공 시 재진단 스킵.',
+          items: {
+            type: 'object',
+            properties: {
+              priority: { type: 'string' },
+              category: { type: 'string' },
+              title: { type: 'string' },
+              description: { type: 'string' },
+              action: { type: 'string' },
+            },
+            required: ['priority', 'title', 'description'],
+          },
+        },
       },
-      required: ['githubRepoUrl'],
     },
   },
 ]
@@ -204,22 +237,53 @@ async function callTool(name: string, args: unknown, userId: string): Promise<un
   }
 
   if (name === 'improve_harness') {
-    const { githubRepoUrl, applyIndex } = z.object({
-      githubRepoUrl: z.string().url(),
+    const FileSchema = z.object({ path: z.string(), content: z.string() })
+    const RecSchema = z.object({
+      priority: z.string(),
+      category: z.string().optional(),
+      title: z.string(),
+      description: z.string(),
+      action: z.string().optional().default(''),
+    })
+    const parsed = z.object({
+      githubRepoUrl: z.string().url().optional(),
       applyIndex: z.number().int().min(0).optional(),
+      files: z.array(FileSchema).optional(),
+      recommendations: z.array(RecSchema).optional(),
     }).parse(args)
 
-    const { analysis } = await syncAndAnalyze(userId, githubRepoUrl)
-    const recs = analysis.recommendations
+    // 루프 모드: files + recommendations 직접 제공
+    if (parsed.files && parsed.recommendations) {
+      const recs = parsed.recommendations as { priority: 'urgent' | 'high' | 'medium'; category: 'context' | 'enforcement' | 'gc'; title: string; description: string; action: string }[]
+      if (recs.length === 0) {
+        return { content: [{ type: 'text', text: '🎉 개선 사항이 없습니다. 하네스가 훌륭합니다!' }] }
+      }
+      const result = await generateImprovedFiles(parsed.files, recs)
+      const text = [
+        `## 하네스 개선 완료`,
+        '',
+        result.summary,
+        '',
+        '### 수정된 파일',
+        ...result.improved_files.map((f) => `- \`${f.path}\`: ${f.change_summary}`),
+        '',
+        '```json',
+        JSON.stringify({ loop_data: { improved_files: result.improved_files } }),
+        '```',
+      ].join('\n')
+      return { content: [{ type: 'text', text }] }
+    }
 
+    // 기존 GitHub 모드
+    const { analysis } = await syncAndAnalyze(userId, parsed.githubRepoUrl!)
+    const recs = analysis.recommendations as { priority: 'urgent' | 'high' | 'medium'; category: 'context' | 'enforcement' | 'gc'; title: string; description: string; action: string }[]
     if (recs.length === 0) {
       return { content: [{ type: 'text', text: '🎉 개선 사항이 없습니다. 하네스가 훌륭합니다!' }] }
     }
-
-    if (applyIndex === undefined) {
+    if (parsed.applyIndex === undefined) {
       const emoji = { urgent: '🔴', high: '🟠', medium: '🟡' } as const
       const text = [
-        `## 하네스 개선 추천 — ${githubRepoUrl}`,
+        `## 하네스 개선 추천`,
         '',
         ...recs.map((r, i) => {
           const e = emoji[r.priority as keyof typeof emoji] ?? '⚪'
@@ -231,12 +295,10 @@ async function callTool(name: string, args: unknown, userId: string): Promise<un
       ].join('\n')
       return { content: [{ type: 'text', text }] }
     }
-
-    const rec = recs[applyIndex]
+    const rec = recs[parsed.applyIndex]
     if (!rec) {
-      return { content: [{ type: 'text', text: `❌ ${applyIndex}번 항목이 없습니다. 0–${recs.length - 1} 사이 번호를 입력하세요.` }] }
+      return { content: [{ type: 'text', text: `❌ ${parsed.applyIndex}번 항목이 없습니다. 0–${recs.length - 1} 사이 번호를 입력하세요.` }] }
     }
-
     return { content: [{ type: 'text', text: [`## ${rec.title} 적용`, '', rec.action].join('\n') }] }
   }
 
