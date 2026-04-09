@@ -144,7 +144,7 @@ export function parseAnalysisResponse(raw: string, tokenUsage: TokenUsage | null
 
 export function buildImprovementPrompt(
   files: { path: string; content: string }[],
-  recommendations: { priority: string; title: string; description: string; action?: string }[]
+  recommendations: Recommendation[]
 ): string {
   const fileContents = files.map((f) => `### ${f.path}\n${f.content}`).join('\n\n---\n\n')
   const recList = recommendations

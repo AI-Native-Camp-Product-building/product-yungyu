@@ -33,7 +33,7 @@ describe('parseAnalysisResponse', () => {
   })
 
   it('잘못된 JSON이면 에러를 던진다', () => {
-    expect(() => parseAnalysisResponse('not json')).toThrow()
+    expect(() => parseAnalysisResponse('not json')).toThrow(SyntaxError)
   })
 
   it('점수가 0-100 범위를 벗어나면 클램핑한다', () => {
