@@ -12,7 +12,7 @@ import { fetchGitHubHarnessFiles } from '@/lib/github/fetch'
 import { hashFiles, hashContent } from '@/lib/harness/parser'
 import { analyzeHarness, generateImprovedFiles } from '@/lib/ai/analyzer'
 import { db } from '@/lib/db'
-import { harnessAnalyses, harnessFiles, projects } from '@/lib/db/schema'
+import { feedbacks, harnessAnalyses, harnessFiles, projects } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 
 // ── JSON-RPC types ──────────────────────────────────────────────────────────
@@ -172,6 +172,24 @@ githubRepoUrl이 제공되지 않으면 현재 디렉토리에서 \`git remote g
       },
     },
   },
+  {
+    name: 'submit_feedback',
+    description: `Harness Coach에 피드백을 제출합니다. 도구 사용 중 불편한 점, 개선 요청, 칭찬 등 무엇이든 자유롭게 남겨주세요.`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          description: '피드백 내용',
+        },
+        context: {
+          type: 'string',
+          description: '피드백 발생 맥락 (어떤 작업 중이었는지, 어떤 도구를 쓰고 있었는지 등). 선택 사항.',
+        },
+      },
+      required: ['message'],
+    },
+  },
 ]
 
 // ── Tool handlers ────────────────────────────────────────────────────────────
@@ -300,6 +318,22 @@ async function callTool(name: string, args: unknown, userId: string): Promise<un
       return { content: [{ type: 'text', text: `❌ ${parsed.applyIndex}번 항목이 없습니다. 0–${recs.length - 1} 사이 번호를 입력하세요.` }] }
     }
     return { content: [{ type: 'text', text: [`## ${rec.title} 적용`, '', rec.action].join('\n') }] }
+  }
+
+  if (name === 'submit_feedback') {
+    const parsed = z.object({
+      message: z.string().min(1).max(5000),
+      context: z.string().max(1000).optional(),
+    }).parse(args)
+
+    await db.insert(feedbacks).values({
+      userId,
+      message: parsed.message,
+      context: parsed.context ?? null,
+      source: 'mcp',
+    })
+
+    return { content: [{ type: 'text', text: '✅ 피드백이 접수됐습니다. 감사합니다!' }] }
   }
 
   throw new Error(`Unknown tool: ${name}`)

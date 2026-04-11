@@ -15,6 +15,13 @@
       "when": 1775635488271,
       "tag": "0001_yellow_justin_hammer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775902877884,
+      "tag": "0002_ancient_tyrannus",
+      "breakpoints": true
     }
   ]
 }
