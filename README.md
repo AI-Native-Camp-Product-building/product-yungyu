@@ -92,3 +92,39 @@ Harness Coach는 **MCP(Model Context Protocol) 서버**를 내장하고 있어, 
 3. Claude Code 재시작 후 `/mcp` 명령으로 연결 확인
 
 > 상세 가이드: [`docs/mcp-guide.md`](docs/mcp-guide.md)
+
+---
+
+## 하네스 자동 최적화 루프
+
+MCP 도구를 활용하면 Claude Code를 오케스트레이터로 삼아 **하네스를 목표 점수까지 자동으로 개선하는 루프**를 돌릴 수 있습니다.
+
+### 동작 방식
+
+```
+진단 → 점수 확인 → (임계값 미달) → 개선 적용 → 파일 쓰기 → 재진단 → ...
+```
+
+Claude Code가 로컬 하네스 파일을 직접 읽어 MCP 서버에 전달하므로 **GitHub fetch 없이 즉시 분석**됩니다. 점수가 목표에 도달하거나 최대 반복 횟수에 이르면 루프가 종료됩니다.
+
+### Claude Code에 붙여넣을 프롬프트
+
+```
+현재 디렉토리의 하네스 파일(CLAUDE.md, skills/, hooks/, .claude/settings.json)을 읽어서
+diagnose_harness(files)로 진단하고, 종합 점수가 80점 미만이면
+improve_harness(files, recommendations)로 개선된 파일 내용을 받아 로컬에 저장해줘.
+점수가 80점 이상이 될 때까지 최대 5번 반복하고,
+각 라운드마다 점수 변화를 출력해줘.
+```
+
+### MCP 도구 인터페이스 (루프 모드)
+
+| 도구 | 루프 모드 입력 | 반환 |
+|------|--------------|------|
+| `diagnose_harness` | `files: [{path, content}]` | 3축 점수 + 추천 목록 + `loop_data` JSON |
+| `improve_harness` | `files` + `recommendations` | 개선된 파일 내용 + `loop_data.improved_files` |
+
+- `files`를 직접 전달하면 GitHub fetch와 DB 캐시를 건너뜁니다.
+- `improve_harness`는 수정된 파일의 **완성된 내용 전체**를 반환하므로, Claude Code가 그대로 로컬에 덮어쓸 수 있습니다.
+
+> 구현 스펙: [`docs/superpowers/specs/2026-04-09-harness-optimization-loop-design.md`](docs/superpowers/specs/2026-04-09-harness-optimization-loop-design.md)
