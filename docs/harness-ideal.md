@@ -74,4 +74,13 @@
 > 형식: `[버전] YYYY-MM-DD | 출처 | 반영 이유`
 
 <!-- EVOLUTION_LOG_START -->
+- [v20260411.1] 2026-04-11 | Hacker News | context | Claude Code의 복잡한 엔지니어링 작업 실패 사례 분석
+  → Layer 1에 '프로젝트 복잡도 평가' 기준 추가: CLAUDE.md에서 프로젝트 스코프(LOC, 모듈 수, 의존성 깊이)를 명시하고, 복잡한 작업은 '작업 분해 가이드(task-decomposition.md)' 필수 포함
+- [v20260411.2] 2026-04-11 | Hacker News | context | 보안 이슈: Vercel 플러그인의 프롬프트 텔레메트리 수집 문제
+  → Layer 1 필수 요소에 '보안 정책(SECURITY.md)' 추가: 타사 플러그인/통합 도구 사용 시 데이터 수집 범위와 제외 설정을 명시하도록 강제
+- [v20260411.3] 2026-04-11 | Hacker News | context | 로컬 LLM(Gemma 4) + Claude Code 통합 패턴
+  → Layer 1에 '.claude/integrations.md' 옵션 추가: 외부 LLM 모델, 로컬 에이전트, MCP 서버 연동 시 설정 예시와 성능 기준 문서화
+- [v20260411.4] 2026-04-11 | 유저 피드백 | enforcement | MCP 정의 및 테스트 확인 요청
+  → Layer 2에 '.claude/settings.json hooks' 기준 상세화: MCP 서버 검증(PreToolUse에서 mcp_call 전 권한·스키마 검사) 항목 추가
+
 <!-- EVOLUTION_LOG_END -->
