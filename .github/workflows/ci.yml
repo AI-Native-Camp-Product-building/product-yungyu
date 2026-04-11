@@ -5,6 +5,8 @@ on:
     branches: [main, feature/**]
   pull_request:
     branches: [main]
+  schedule:
+    - cron: '0 3 * * *'  # 留ㅼ씪 ?삤?쟾 3?떆 ?젙由? ?옉?뾽 ?떎?뻾
 
 jobs:
   ci:
@@ -28,3 +30,24 @@ jobs:
 
       - name: Test with coverage
         run: npm run test:coverage
+
+  cleanup:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cleanup old artifacts and caches
+        run: |
+          echo "Cleaning up old workflow artifacts..."
+          gh run list --workflow ci.yml --status completed --limit 100 --json databaseId -q '.[].databaseId' | head -n 10 | xargs -I {} gh run delete {} || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

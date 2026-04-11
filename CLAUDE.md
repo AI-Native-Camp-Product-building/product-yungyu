@@ -1,161 +1,189 @@
 # Harness Coach
 
-AI가 Claude Code 하네스를 진단하고 개선안을 제안하는 웹앱 SaaS.
+AI媛? Claude Code ?븯?꽕?뒪瑜? 吏꾨떒?븯怨? 媛쒖꽑?븞?쓣 ?젣?븞?븯?뒗 ?쎒 湲곕컲 SaaS.
 
-## 프로젝트 개요
+## ?봽濡쒖젥?듃 媛쒖슂
 
-**포지셔닝:** "Grammarly for Harness" — 사용자의 CLAUDE.md, Skills, Hooks, MCP를 분석해 약점을 진단하고 1클릭으로 개선 적용.
+**?룷吏??뀛?떇:** "Grammarly for Harness" - ?궗?슜?옄?쓽 CLAUDE.md, Skills, Hooks, MCP瑜? 遺꾩꽍?빐 ?빟?젏?쓣 吏꾨떒?븯怨? 1?겢由??쑝濡? 媛쒖꽑 ?쟻?슜.
 
-**타겟:** Claude Code를 쓰는 개인 개발자 → 팀으로 확장.
+**???寃?:** Claude Code瑜? ?벐?뒗 媛쒖씤 媛쒕컻?옄 ?넂?쓬 ?쟾臾멸??.
 
-**스펙:** `docs/superpowers/specs/2026-04-06-harness-coach-design.md`
-**구현 계획:** `docs/superpowers/plans/2026-04-06-harness-coach.md`
+**?뒪?럺:** `docs/superpowers/specs/2026-04-06-harness-coach-design.md`
+**援ы쁽 怨꾪쉷:** `docs/superpowers/plans/2026-04-06-harness-coach.md`
 
-## 핵심 사용자 흐름
+## ?빑?떖 ?궗?슜?옄 ?썙?겕?뵆濡쒖슦
 
 ```
-Connect → Diagnose → Recommend → Edit → Deploy + Monitor
+Connect ?넂 Diagnose ?넂 Recommend ?넂 Edit ?넂 Deploy + Monitor
 ```
 
-1. GitHub 레포 연결 또는 파일 업로드
-2. AI(claude-haiku-4.5)가 3축 점수화: 컨텍스트 / 자동강제 / 가비지컬렉션
-3. 우선순위별 개선안 제안 (1클릭 적용)
-4. CLAUDE.md / Skills 시각적 편집
-5. 수정 파일 zip 다운로드
+1. GitHub ?젅?룷 ?뿰寃? ?삉?뒗 ?뙆?씪 ?뾽濡쒕뱶
+2. AI(claude-haiku-4.5)媛? 3珥? ?젏?닔?솕: 而⑦뀓?뒪?듃 / ?옄?룞媛뺤젣 / 媛?鍮꾩??而щ젆?뀡
+3. ?슦?꽑?닚?쐞蹂? 媛쒖꽑?븞 ?젣?븞 (1?겢由? ?쟻?슜)
+4. CLAUDE.md / Skills ?떎?떆媛? ?렪吏?
+5. ?닔?젙 ?뙆?씪 zip ?떎?슫濡쒕뱶
 
-## 기술 스택
+## 湲곗닠 ?뒪?깮
 
-| 레이어 | 선택 |
+| ?젅?씠?뼱 | ?꽑?깮 |
 |--------|------|
-| 프레임워크 | Next.js 16 (App Router, Server Actions) |
-| UI | shadcn/ui + Geist, **다크모드 기본** |
+| ?봽?젅?엫?썙?겕 | Next.js 16 (App Router, Server Actions) |
+| UI | shadcn/ui + Geist, **?떎?겕紐⑤뱶 湲곕낯** |
 | AI | claude-haiku-4.5 via **Vercel AI Gateway (OIDC)** |
 | AI SDK | AI SDK v6 (generateText) + AI Elements |
 | DB | Drizzle ORM + Neon Postgres |
-| 파일 | Vercel Blob |
-| 인증 | Clerk (GitHub 소셜 로그인) |
-| 테스트 | Vitest |
-| 배포 | Vercel |
+| ?뙆?씪 | Vercel Blob |
+| ?씤利? | Clerk (GitHub ?냼?뀥 濡쒓렇?씤) |
+| ?뀒?뒪?듃 | Vitest |
+| 諛고룷 | Vercel |
 
-## 절대 하면 안 되는 것
+## ?젅??? ?븯硫? ?븞 ?릺?뒗 寃?
 
-- `ANTHROPIC_API_KEY` 직접 사용 금지 — 반드시 Vercel AI Gateway (OIDC) 사용
-- AI 텍스트를 `{text}` 또는 `<p>{content}</p>`로 렌더링 금지 — AI Elements 사용
-- 분석 버튼 없이 자동 AI 호출 금지 — 비용 통제를 위해 수동 트리거만
-- 파일 hash가 동일하면 재분석 금지 — 반드시 캐시 확인 후 실행
+- `ANTHROPIC_API_KEY` 吏곸젒 ?궗?슜 湲덉?? - 諛섎뱶?떆 Vercel AI Gateway (OIDC) ?궗?슜
+- AI ?뀓?뒪?듃瑜? `{text}` ?삉?뒗 `<p>{content}</p>`濡? ?젋?뜑留? 湲덉?? - AI Elements ?궗?슜
+- 遺꾩꽍 踰꾪듉 ?뾾?씠 ?옄?룞 AI ?샇異? 湲덉?? - 鍮꾩슜 ?넻?젣瑜? ?쐞?빐 ?닔?룞 ?듃由ш굅留?
+- ?뙆?씪 hash媛? ?룞?씪?븯硫? ?옱遺꾩꽍 湲덉?? - 諛섎뱶?떆 罹먯떆 ?솗?씤 ?썑 ?떎?뻾
 
-## AI 비용 통제 원칙
+## AI 鍮꾩슜 ?넻?젣 ?썝移?
 
-- 모델: `anthropic/claude-haiku-4.5` (Sonnet/Opus 사용 금지, 명시적 승인 없이는)
-- 캐시 키: 프로젝트의 모든 하네스 파일 hash를 합친 `filesHash`
-- 트리거: 사용자가 "분석" 버튼 클릭 시에만 실행
-- 목표: 분석 1회 비용 $0.01 미만
+- 紐⑤뜽: `anthropic/claude-haiku-4.5` (Sonnet/Opus ?궗?슜 湲덉??, 紐낆떆?쟻 ?듅?씤 ?뾾?씠?뒗)
+- 罹먯떆 ?궎: ?봽濡쒖젥?듃?쓽 紐⑤뱺 ?븯?꽕?뒪 ?뙆?씪 hash瑜? ?빀移? `filesHash`
+- ?듃由ш굅: ?궗?슜?옄媛? "遺꾩꽍" 踰꾪듉 ?겢由? ?떆?뿉留? ?떎?뻾
+- 紐⑺몴: 遺꾩꽍 1?쉶 鍮꾩슜 $0.01 誘몃쭔
 
-## 파일 구조 (예정)
+## ?뙆?씪 援ъ“ (?삁?젙)
 
 ```
 harness-manager/
-├── app/
-│   ├── (auth)/          # Clerk sign-in/sign-up
-│   └── (app)/
-│       ├── dashboard/   # 프로젝트 목록
-│       └── projects/[id]/
-│           ├── page.tsx        # 대시보드 (점수 + 추천)
-│           └── editor/page.tsx # CLAUDE.md + Skills 편집기
-├── components/
-│   ├── harness-score-card.tsx
-│   ├── recommendation-card.tsx
-│   ├── claude-md-editor.tsx
-│   └── skills-manager.tsx
-├── lib/
-│   ├── db/schema.ts     # Drizzle 스키마
-│   ├── harness/parser.ts  # 파일 파싱 + hash (순수 함수, 테스트 필수)
-│   └── ai/analyzer.ts   # AI 분석 프롬프트 + 파싱 (순수 함수, 테스트 필수)
-├── actions/
-│   ├── projects.ts
-│   ├── harness.ts
-│   └── analysis.ts      # 캐시 확인 → AI 실행 → 저장
-└── middleware.ts         # Clerk auth guard
+?뵜?????? app/
+?봻   ?뵜?????? (auth)/          # Clerk sign-in/sign-up
+?봻   ?뵒?????? (app)/
+?봻       ?뵜?????? dashboard/   # ?봽濡쒖젥?듃 紐⑸줉
+?봻       ?뵒?????? projects/[id]/
+?봻           ?뵜?????? page.tsx        # ????떆蹂대뱶 (?젏?닔 + 異붿쿇)
+?봻           ?뵒?????? editor/page.tsx # CLAUDE.md + Skills ?렪吏묎린
+?뵜?????? components/
+?봻   ?뵜?????? harness-score-card.tsx
+?봻   ?뵜?????? recommendation-card.tsx
+?봻   ?뵜?????? claude-md-editor.tsx
+?봻   ?뵒?????? skills-manager.tsx
+?뵜?????? lib/
+?봻   ?뵜?????? db/schema.ts     # Drizzle ?뒪?궎留?
+?봻   ?뵜?????? harness/parser.ts  # ?뙆?씪 ?뙆?떛 + hash (?닚?닔 ?븿?닔, ?뀒?뒪?듃 ?븘?닔)
+?봻   ?뵒?????? ai/analyzer.ts   # AI 遺꾩꽍 ?봽濡쒗봽?듃 + ?뙆?떛 (?닚?닔 ?븿?닔, ?뀒?뒪?듃 ?븘?닔)
+?뵜?????? actions/
+?봻   ?뵜?????? projects.ts
+?봻   ?뵜?????? harness.ts
+?봻   ?뵒?????? analysis.ts      # 罹먯떆 ?솗?씤 ?넂 AI ?떎?뻾 ?넂 ????옣
+?뵒?????? middleware.ts         # Clerk auth guard
 ```
 
-## MVP 범위 (Phase 1)
+## MVP 踰붿쐞 (Phase 1)
 
-- [x] 설계 완료
-- [ ] GitHub 레포 연결 / 파일 업로드
-- [ ] 하네스 파싱 (CLAUDE.md, skills/, hooks/, settings.json)
-- [ ] AI 진단 + 3축 점수화
-- [ ] AI 추천 + 1클릭 적용
-- [ ] CLAUDE.md / Skills 편집기
-- [ ] zip 다운로드
-- [ ] Clerk 인증
+- [x] ?꽕?젙 ?셿猷?
+- [ ] GitHub ?젅?룷 ?뿰寃? / ?뙆?씪 ?뾽濡쒕뱶
+- [ ] ?븯?꽕?뒪 ?뙆?떛 (CLAUDE.md, skills/, hooks/, settings.json)
+- [ ] AI 吏꾨떒 + 3珥? ?젏?닔?솕
+- [ ] AI 異붿쿇 + 1?겢由? ?쟻?슜
+- [ ] CLAUDE.md / Skills ?렪吏묎린
+- [ ] zip ?떎?슫濡쒕뱶
+- [ ] Clerk ?씤利?
 
-## Phase 2 (나중에)
+## Phase 2 (?굹以묒뿉)
 
-- Notion / Slack 연동 (업무 스타일 분석)
-- GitHub PR 자동 생성
-- 팀 협업
-- Hooks / MCP 편집기
-- 가비지컬렉션 에이전트
+- Notion / Slack ?뿰?룞 (?뾽臾? ?뒪?듃由? 遺꾩꽍)
+- GitHub PR ?옄?룞 ?깮?꽦
+- ??? ?삊?뾽
+- Hooks / MCP ?렪吏묎린
+- 媛?鍮꾩?? 而щ젆?뀡 ?뿉?씠?쟾?듃
 
-## 테스트 규칙
+## 肄붾뱶 ?뒪????씪 媛??씠?뱶?씪?씤
 
-- **커버리지 80% 이상 필수** — `lib/harness/parser.ts`, `lib/ai/analyzer.ts` 는 순수 함수이므로 반드시 테스트
-- `npm run test:coverage` 로 확인, 미달 시 CI 실패
-- 새 순수 함수 추가 시 동일 파일에 `.test.ts` 작성 필수
+### TypeScript
+- 紐⑤뱺 ?븿?닔?뿉 紐낆떆?쟻 ????엯 ?꽑?뼵 ?븘?닔 (諛섑솚媛? + ?씤?옄)
+- ?쑀?땲?삩 ????엯??? 援ъ껜?쟻?쑝濡?: `string | null` ?꽑?샇, `any` 湲덉??
+- ?뿉?윭 泥섎━: `try-catch` ?삉?뒗 `Promise` reject 紐낆떆
 
-## 핵심 함수 스펙
+### React/Next.js
+- "use client" 理쒖냼?솕: 湲곕낯??? Server Components
+- Form: Server Actions ?궗?슜, `onChange` 肄쒕갚 理쒖냼?솕
+- ?꽦?뒫: 而댄룷?꼳?듃 遺꾨━ > useMemo/useCallback
+
+### ?븿?닔 ?꽕怨?
+- ?닚?닔 ?븿?닔 ?슦?꽑 (`lib/` 紐⑤뱢)
+- ?궗?씠?뱶?씠?럺?듃?뒗 `actions/` ?삉?뒗 而댄룷?꼳?듃?뿉 寃⑸━
+- ?븳 ?븿?닔 = ?븳 梨낆엫 (Single Responsibility)
+
+### ?뀒?뒪?듃
+- `lib/` ?닚?닔 ?븿?닔?뒗 諛섎뱶?떆 `.test.ts` ?옉?꽦
+- 而ㅻ쾭由ъ??: 80% ?씠?긽 ?븘?닔
+- Mock??? 理쒖냼?솕, ?떎?젣 濡쒖쭅 ?뀒?뒪?듃 ?슦?꽑
+
+### ?꽕?씠諛?
+- ?뙆?씪: kebab-case (`claude-md-editor.tsx`)
+- ?븿?닔/蹂??닔: camelCase
+- ?긽?닔: UPPER_SNAKE_CASE
+- 遺덈┛ ?븿?닔: `is*`, `has*`, `can*` ?젒?몢?궗
+
+## ?빑?떖 ?븿?닔 ?뒪?럺
 
 ### `lib/harness/parser.ts`
 
 ```typescript
-// 파일 맵에서 하네스 구조 파싱
+// ?뙆?씪 留듭뿉?꽌 ?븯?꽕?뒪 援ъ“ ?뙆?떛
 parseHarnessFromMap(files: Map<string, string>): HarnessData
 
-// 하네스 구조를 평탄한 파일 배열로 변환
+// ?븯?꽕?뒪 援ъ“瑜? ?룊?깂?븳 ?뙆?씪 諛곗뿴濡? 蹂??솚
 getAllFiles(harness: HarnessData): Array<{ path: string; content: string; hash: string }>
 
-// 단일 파일 내용 해시 (SHA-256, hex)
+// ?떒?씪 ?뙆?씪 ?궡?슜 ?빐?떆 (SHA-256, hex)
 hashContent(content: string): string
 
-// 여러 파일의 해시를 합산한 캐시 키 생성
+// ?뿬?윭 ?뙆?씪?쓽 ?빐?떆瑜? ?빀?궛?븳 罹먯떆 ?궎 ?깮?꽦
 hashFiles(files: Array<{ hash: string }>): string
-// → 실패 없음. 빈 배열이면 빈 문자열 반환
+// ?넂 ?떎?옉 ?뾾?쓬. 鍮? 諛곗뿴?씠硫? 鍮? 臾몄옄?뿴 諛섑솚
 ```
 
 ### `lib/ai/analyzer.ts`
 
 ```typescript
-// AI 분석용 프롬프트 생성 (순수 함수, 부작용 없음)
+// AI 遺꾩꽍?슜 ?봽濡ы봽?듃 ?깮?꽦 (?닚?닔 ?븿?닔, 遺??옉?슜 ?뾾?쓬)
 buildAnalysisPrompt(fileContents: string): string
 
-// AI 응답 JSON 파싱. 마크다운 코드블록 자동 제거
-// → JSON 파싱 실패 시 SyntaxError throw
+// AI ?쓳?떟 JSON ?뙆?떛. 留덊겕?떎?슫 肄붾뱶釉붾줉 ?옄?룞 ?젣嫄?
+// ?넂 JSON ?뙆?떛 ?떎?옉 ?떆 SyntaxError throw
 parseAnalysisResponse(raw: string): AnalysisResult
 
-// AI Gateway 호출 → 분석 실행
-// → Gateway 오류 시 GatewayInternalServerError throw
+// AI Gateway ?샇異? ?넂 遺꾩꽍 ?떎?뻾
+// ?넂 Gateway ?삤瑜? ?떆 GatewayInternalServerError throw
 analyzeHarness(fileContents: string): Promise<AnalysisResult>
 ```
 
-### `actions/analysis.ts` — 캐시 키 전략
+### `actions/analysis.ts` - 罹먯떆 ?궎 ?쟾?왂
 
 ```typescript
-// filesHash = SHA-256(각 파일 hash를 정렬 후 연결)
-// 동일 hash 존재 시 → DB 캐시 반환 (AI 미호출)
-// 새 hash → AI 분석 → DB 저장
+// filesHash = SHA-256(媛? ?뙆?씪 hash瑜? ?젙?젹 ?썑 ?뿰寃?)
+// ?룞?씪 hash 議댁옱 ?떆 ?넂 DB 罹먯떆 諛섑솚 (AI 誘명샇異?)
+// ?깉 hash ?넂 AI 遺꾩꽍 ?넂 DB ????옣
 getOrRunAnalysis(projectId: string): Promise<HarnessAnalysis | null>
 ```
 
-## 로컬 개발 시작
+## ?뀒?뒪?듃 洹쒖튃
+
+- **而ㅻ쾭由ъ?? 80% ?씠?긽 ?븘?닔** ?넂 `lib/harness/parser.ts`, `lib/ai/analyzer.ts` ?뒗 ?닚?닔 ?븿?닔?씠誘?濡? 諛섎뱶?떆 ?뀒?뒪?듃
+- `npm run test:coverage` 濡? ?솗?씤, 誘몃떖 ?떆 CI ?떎?옉
+- ?깉 ?닚?닔 ?븿?닔 異붽?? ?떆 ?룞?씪 ?뙆?씪?뿉 `.test.ts` ?옉?꽦 ?븘?닔
+
+## 濡쒖뺄 媛쒕컻 ?떆?옉
 
 ```bash
-# 1. Vercel 프로젝트 연결 + AI Gateway 활성화
+# 1. Vercel ?봽濡쒖젥?듃 ?뿰寃? + AI Gateway ?솢?꽦?솕
 vercel link
 vercel env pull .env.local
 
-# 2. Neon DB 마이그레이션
+# 2. Neon DB 留덉씠洹몃젅?씠?뀡
 npx drizzle-kit migrate
 
-# 3. 개발 서버
+# 3. 媛쒕컻 ?꽌踰?
 npm run dev
 ```

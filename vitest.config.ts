@@ -1,23 +1,30 @@
-import { defineConfig } from 'vitest/config'
-import path from 'path'
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+import path from 'path';
 
 export default defineConfig({
+  plugins: [react()],
   test: {
-    environment: 'node',
-    globals: true,
+    environment: 'jsdom',
     coverage: {
       provider: 'v8',
-      include: ['lib/harness/parser.ts', 'lib/ai/analyzer.ts'],
-      thresholds: {
-        lines: 80,
-        functions: 80,
-        branches: 75,
-      },
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'dist/',
+        '.next/',
+      ],
+      statements: 80,
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      failOnLowCoverage: true,
     },
+    globals: true,
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, '.'),
+      '@': path.resolve(__dirname, './'),
     },
   },
-})
+});

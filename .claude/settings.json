@@ -1,0 +1,43 @@
+{
+  "project": {
+    "name": "harness-coach",
+    "description": "AI-powered Claude Code harness analyzer and improver",
+    "language": "TypeScript",
+    "framework": "Next.js 16"
+  },
+  "claude": {
+    "model": "claude-opus-4",
+    "temperature": 0.7,
+    "maxTokens": 4000,
+    "systemPrompt": "You are an expert harness engineer specializing in Claude Code optimization. Provide precise, actionable recommendations for improving CLAUDE.md, Skills, Hooks, and MCP configurations."
+  },
+  "codeStyle": {
+    "lineLength": 100,
+    "indentation": 2,
+    "semicolons": true,
+    "quotes": "single",
+    "trailingComma": "es5"
+  },
+  "hooks": [
+    {
+      "trigger": "onFileChange",
+      "action": "validateHarness",
+      "description": "Validate harness structure on file changes"
+    },
+    {
+      "trigger": "onCommit",
+      "action": "runTests",
+      "description": "Run tests before commit"
+    }
+  ],
+  "mcp": {
+    "enabled": true,
+    "servers": [
+      {
+        "name": "github",
+        "url": "http://localhost:3000",
+        "capabilities": ["read", "write"]
+      }
+    ]
+  }
+}
