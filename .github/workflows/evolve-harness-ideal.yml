@@ -21,6 +21,7 @@ jobs:
       - name: Install script dependencies
         run: |
           mkdir -p /tmp/evolve-deps
+          cp scripts/evolve-harness-ideal.mjs /tmp/evolve-deps/
           cd /tmp/evolve-deps
           npm init -y
           npm install @neondatabase/serverless @anthropic-ai/sdk
@@ -29,8 +30,8 @@ jobs:
         env:
           DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          NODE_PATH: /tmp/evolve-deps/node_modules
-        run: node scripts/evolve-harness-ideal.mjs
+          IDEAL_PATH: ${{ github.workspace }}/docs/harness-ideal.md
+        run: cd /tmp/evolve-deps && node evolve-harness-ideal.mjs
 
       - name: Commit if changed
         run: |

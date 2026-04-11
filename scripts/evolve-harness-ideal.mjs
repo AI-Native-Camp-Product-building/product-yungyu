@@ -12,7 +12,8 @@ import { readFileSync, writeFileSync } from 'fs'
 import { neon } from '@neondatabase/serverless'
 import Anthropic from '@anthropic-ai/sdk'
 
-const IDEAL_PATH = new URL('../docs/harness-ideal.md', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1')
+const IDEAL_PATH = process.env.IDEAL_PATH
+  ?? new URL('../docs/harness-ideal.md', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1')
 
 const HN_KEYWORDS = [
   'claude code', 'CLAUDE.md', 'claude hooks',
