@@ -99,32 +99,87 @@ Harness Coach는 **MCP(Model Context Protocol) 서버**를 내장하고 있어, 
 
 MCP 도구를 활용하면 Claude Code를 오케스트레이터로 삼아 **하네스를 목표 점수까지 자동으로 개선하는 루프**를 돌릴 수 있습니다.
 
+### 사용법
+
+Claude Code에 이렇게 말하면 됩니다:
+
+```
+최적화 루프 실행해줘
+```
+
+Claude가 목표 점수와 최대 반복 횟수를 물어본 뒤 루프를 시작합니다. 나머지는 자동입니다.
+
 ### 동작 방식
 
 ```
 진단 → 점수 확인 → (임계값 미달) → 개선 적용 → 파일 쓰기 → 재진단 → ...
 ```
 
-Claude Code가 로컬 하네스 파일을 직접 읽어 MCP 서버에 전달하므로 **GitHub fetch 없이 즉시 분석**됩니다. 점수가 목표에 도달하거나 최대 반복 횟수에 이르면 루프가 종료됩니다.
-
-### Claude Code에 붙여넣을 프롬프트
-
-```
-현재 디렉토리의 하네스 파일(CLAUDE.md, skills/, hooks/, .claude/settings.json)을 읽어서
-diagnose_harness(files)로 진단하고, 종합 점수가 80점 미만이면
-improve_harness(files, recommendations)로 개선된 파일 내용을 받아 로컬에 저장해줘.
-점수가 80점 이상이 될 때까지 최대 5번 반복하고,
-각 라운드마다 점수 변화를 출력해줘.
-```
+로컬 파일을 직접 읽어 MCP 서버에 전달하므로 **GitHub fetch 없이 즉시 분석**됩니다. 점수가 목표에 도달하거나 최대 반복 횟수에 이르면 루프가 종료되고 변경 내역을 요약해줍니다.
 
 ### MCP 도구 인터페이스 (루프 모드)
 
 | 도구 | 루프 모드 입력 | 반환 |
 |------|--------------|------|
-| `diagnose_harness` | `files: [{path, content}]` | 3축 점수 + 추천 목록 + `loop_data` JSON |
-| `improve_harness` | `files` + `recommendations` | 개선된 파일 내용 + `loop_data.improved_files` |
-
-- `files`를 직접 전달하면 GitHub fetch와 DB 캐시를 건너뜁니다.
-- `improve_harness`는 수정된 파일의 **완성된 내용 전체**를 반환하므로, Claude Code가 그대로 로컬에 덮어쓸 수 있습니다.
+| `diagnose_harness` | `files: [{path, content}]` | 3축 점수 + 추천 목록 |
+| `improve_harness` | `files` + `recommendations` | 개선된 파일 전체 내용 |
 
 > 구현 스펙: [`docs/superpowers/specs/2026-04-09-harness-optimization-loop-design.md`](docs/superpowers/specs/2026-04-09-harness-optimization-loop-design.md)
+
+---
+
+## 좋은 하네스란 무엇인가 — 3축 정의
+
+Harness Coach는 하네스 품질을 세 가지 축으로 정의합니다. 세 축이 모두 균형 있게 갖춰져야 AI가 제대로 작동합니다.
+
+### Layer 1 — 컨텍스트 (Context)
+
+> *"AI에게 프로젝트를 얼마나 잘 설명하고 있는가"*
+
+AI는 맥락이 없으면 일반적인 답변만 합니다. 컨텍스트 레이어는 AI가 **이 프로젝트만의 규칙과 배경**을 이해하도록 합니다.
+
+| 구성 요소 | 역할 |
+|----------|------|
+| `CLAUDE.md` | 프로젝트 목적, 기술 스택, 코딩 규칙, 금지 패턴 |
+| `skills/` | 반복 작업별 전문 지식 (커밋 방법, 리뷰 기준 등) |
+| 아키텍처 다이어그램 | 컴포넌트 구조와 데이터 흐름 |
+
+**약한 신호:** AI가 같은 실수를 반복하거나, 프로젝트 규칙을 무시한 코드를 생성할 때.
+
+### Layer 2 — 자동강제 (Enforcement)
+
+> *"품질 기준이 얼마나 자동으로 강제되는가"*
+
+규칙을 문서화해도 AI가 따르지 않으면 의미가 없습니다. 자동강제 레이어는 **훅과 CI로 규칙 위반을 자동 차단**합니다.
+
+| 구성 요소 | 역할 |
+|----------|------|
+| `.claude/settings.json` hooks | AI 행동 전후로 자동 실행되는 검사 |
+| `.husky/` pre-commit | 커밋 전 lint·타입 검사 |
+| `.github/workflows/` CI | PR마다 테스트·커버리지 강제 |
+| `lint-staged` | 변경 파일에만 빠른 검사 적용 |
+
+**약한 신호:** 규칙이 CLAUDE.md에는 있지만 hook이나 CI로 강제되지 않을 때.
+
+### Layer 3 — 가비지컬렉션 (GC)
+
+> *"오래된 컨텍스트와 임시 파일이 자동으로 정리되는가"*
+
+AI 세션이 쌓이면 오래된 정보가 노이즈가 됩니다. GC 레이어는 **컨텍스트를 주기적으로 정리**해 AI가 항상 최신 상태에서 작동하도록 합니다.
+
+| 구성 요소 | 역할 |
+|----------|------|
+| Cron 잡 | 만료된 세션 데이터 자동 삭제 |
+| `cleanup-sessions` 워크플로우 | 오래된 임시 파일 정리 |
+| Post-session hook | 세션 종료 시 불필요한 컨텍스트 제거 |
+
+**약한 신호:** 시간이 지날수록 AI 응답 품질이 낮아지거나, 이전 세션 데이터가 간섭할 때.
+
+### 종합 점수 해석
+
+| 점수 | 등급 | 의미 |
+|------|------|------|
+| 80–100 | A | 세 축이 균형 있게 갖춰진 이상적인 하네스 |
+| 60–79 | B | 기본은 있으나 자동화 또는 정리 부분이 부족 |
+| 40–59 | C | CLAUDE.md 정도만 있는 초기 상태 |
+| 0–39 | D | 하네스가 거의 없어 AI가 맥락 없이 동작 |
